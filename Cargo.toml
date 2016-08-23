@@ -1,0 +1,15 @@
+[project]
+name    = "alexandria"
+version = "0.1.0-dev"
+publish = false
+
+[[bin]]
+name = "alexandria"
+test = false
+doc  = false
+
+[dependencies]
+ring = "0.2"
+
+[dev-dependencies]
+tempdir = "0.3"
