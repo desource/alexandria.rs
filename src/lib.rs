@@ -1,3 +1,6 @@
 extern crate ring;
+extern crate byteorder;
 
-pub mod cli;
+pub mod encrypt;
+pub mod decrypt;
+mod base58;

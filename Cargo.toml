@@ -10,6 +10,7 @@ doc  = false
 
 [dependencies]
 ring = "0.2"
+byteorder = "0.5"
 
 [dev-dependencies]
 tempdir = "0.3"
