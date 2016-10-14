@@ -1,30 +1,4 @@
-#![allow(dead_code)]
 use std::{error, fmt};
-//use byteorder::{ByteOrder, LittleEndian, WriteBytesExt};
-
-/// An error that might occur during base58 decoding
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub enum Error {
-    /// Invalid character encountered
-    BadByte(u8),
-}
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
-            Error::BadByte(b) => write!(f, "invalid base58 character 0x{:x}", b),
-        }
-    }
-}
-
-impl error::Error for Error {
-    fn cause(&self) -> Option<&error::Error> { None }
-    fn description(&self) -> &'static str {
-        match *self {
-            Error::BadByte(_) => "invalid b58 character",
-        }
-    }
-}
 
 static BASE58_CHARS: &'static [u8] = b"123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 
@@ -118,8 +92,19 @@ pub trait FromBase58: Sized {
     // }
 }
 
+pub fn decode_slice_to(s: &str, out: &mut [u8]) -> Result<(), ()> {
+    let v: Vec<u8> = match FromBase58::from_base58(s) {
+        Err(_) => return Err(()),
+        Ok(v) => v,
+    };
+
+    out.copy_from_slice(&v);
+
+    Ok(())
+}
+
 /// Directly encode a slice as base58
-pub fn base58_encode_slice(data: &[u8]) -> String {
+pub fn encode_slice(data: &[u8]) -> String {
     // 7/5 is just over log_58(256)
     let mut scratch = vec![0u8; 1 + data.len() * 7 / 5];
     // Build in base 58
@@ -144,6 +129,31 @@ pub fn base58_encode_slice(data: &[u8]) -> String {
     String::from_utf8(ret).unwrap()
 }
 
+
+/// An error that might occur during base58 decoding
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum Error {
+    /// Invalid character encountered
+    BadByte(u8),
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            Error::BadByte(b) => write!(f, "invalid base58 character 0x{:x}", b),
+        }
+    }
+}
+
+impl error::Error for Error {
+    fn cause(&self) -> Option<&error::Error> { None }
+    fn description(&self) -> &'static str {
+        match *self {
+            Error::BadByte(_) => "invalid b58 character",
+        }
+    }
+}
+
 /// Trait for objects which can be written as base58
 pub trait ToBase58 {
     /// The serialization to be converted into base58
@@ -151,7 +161,7 @@ pub trait ToBase58 {
 
     /// Obtain a string with the base58 encoding of the object
     fn to_base58(&self) -> String {
-        base58_encode_slice(&self.base58_layout()[..])
+        encode_slice(&self.base58_layout()[..])
     }
 
     // /// Obtain a string with the base58check encoding of the object
@@ -160,19 +170,19 @@ pub trait ToBase58 {
     //     let mut data = self.base58_layout();
     //     let checksum = Sha256dHash::from_data(&data).into_le().low_u32();
     //     data.write_u32::<LittleEndian>(checksum).unwrap();
-    //     base58_encode_slice(&data)
+    //     encode_slice(&data)
     // }
 }
 
 // Trivial implementations for slices and vectors
 impl<'a> ToBase58 for &'a [u8] {
     fn base58_layout(&self) -> Vec<u8> { self.to_vec() }
-    fn to_base58(&self) -> String { base58_encode_slice(*self) }
+    fn to_base58(&self) -> String { encode_slice(*self) }
 }
 
 impl<'a> ToBase58 for Vec<u8> {
     fn base58_layout(&self) -> Vec<u8> { self.clone() }
-    fn to_base58(&self) -> String { base58_encode_slice(&self[..]) }
+    fn to_base58(&self) -> String { encode_slice(&self[..]) }
 }
 
 impl FromBase58 for Vec<u8> {

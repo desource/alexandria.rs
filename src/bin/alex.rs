@@ -3,9 +3,8 @@ extern crate alexandria;
 use std::env;
 use std::error;
 use std::fmt;
-use std::io::{Write, stderr};
+use std::io::{Write, stderr, stdin};
 use std::process::exit;
-
 
 use self::Cmd::*;
 use self::HelpKind::*;
@@ -21,9 +20,40 @@ fn main() {
     };
 
     match cmd {
+        GenKeyCmd => {
+            match alexandria::gen_key() {
+                Ok(key) => {
+                    println!("{}", key);
+                }
+                Err(()) => {
+                    let _ = writeln!(&mut stderr(), "failed");
+                    exit(1);
+                }
+            }
+        }
+        PubKeyCmd => {
+            let mut input = String::new();
+            let ref s = {
+                match stdin().read_line(&mut input) {
+                    Ok(n) => &input[..n-1],
+                    Err(err) => {
+                        let _ = writeln!(&mut stderr(), "pubkey failed {}", err);
+                        exit(1);
+                    }
+                }
+            };
+            match alexandria::pub_key(s) {
+                Ok(key) => {
+                    println!("{}", key);
+                }
+                Err(()) => {
+                    let _ = writeln!(&mut stderr(), "pubkey failed for `{}`", s);
+                    exit(1);
+                }
+            }
+        }
         EncryptCmd => { println!("TODO"); }
         DecryptCmd => { println!("TODO"); }
-        KeysCmd    => { println!("TODO"); }
         VersionCmd => print_version(),
         HelpCmd(_kind) => {
             print_usage(0);
@@ -32,26 +62,29 @@ fn main() {
 }
 
 fn print_version() -> ! {
-    println!("alexandria {}", env!("CARGO_PKG_VERSION"));
+    println!("alex(andria) {}", env!("CARGO_PKG_VERSION"));
     exit(0);
 }
 
 fn print_usage(code: i32) -> ! {
-    print!(r#"USAGE:
-      alexandria <command> [<args>...]
+    print!(r#"NAME:
+  alex(andria) - A encrypt and decrypt messages efficently
+
+USAGE:
+  alex <command> [<args>...]
 
 COMMANDS:
-      encrypt
-      decrypt
-      keys
-      version  Print version information
-      help     Help about any command
+  genkey        Generate a new private key
+  pubkey        Generate public key from private key
+  encrypt, enc  Encrypt a message
+  decrypt, dec  Decrypt a message
+  version       Print version information
+  help          Help about any command
 
-OPTIONS:
-      --keystore FILE          Which keystore to use
-  -v, --verbose                Use verbose output
+GLOBAL OPTIONS:
+  -d, --debug   Print debug info to stderr
 
-See 'alexandria help <command>' for more information on a specific command.
+See 'alex help <command>' for more information on a specific command.
 "#);
 
     exit(code);
@@ -59,9 +92,10 @@ See 'alexandria help <command>' for more information on a specific command.
 
 
 pub enum Cmd {
+    GenKeyCmd,
+    PubKeyCmd,
     EncryptCmd,
     DecryptCmd,
-    KeysCmd,
     VersionCmd,
     HelpCmd(HelpKind),
 }
@@ -104,14 +138,13 @@ impl fmt::Display for Fail {
 }
 
 pub fn parse_args() -> Result<Cmd, Fail> {
-
     // let mut opts = GlobalOptions{
     //     verbose:   false,
     // };
 
     let mut args = env::args();
 
-    // ignore process
+    // ignore process for now
     let _process = args.next();
 
     while let Some(arg) = args.next() {
@@ -120,9 +153,10 @@ pub fn parse_args() -> Result<Cmd, Fail> {
 
         match &*flag {
             "-h" | "-help" | "--help" => return Ok(HelpCmd(DefaultHelp)),
-            "encrypt" => return Ok(EncryptCmd),
-            "decrypt" => return Ok(DecryptCmd),
-            "keys"    => return Ok(KeysCmd),
+            "genkey" => return Ok(GenKeyCmd),
+            "pubkey" => return Ok(PubKeyCmd),
+            "encrypt" | "enc" => return Ok(EncryptCmd),
+            "decrypt" | "dec" => return Ok(DecryptCmd),
             "version" => return Ok(VersionCmd),
             "help"    => return parse_help(args),
             _         => return Err(UnknownCommand(flag)),

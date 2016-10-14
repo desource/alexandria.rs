@@ -1,4 +1,4 @@
-#![allow(unused_variables)]
+#![allow(unused_variables,unused_imports)]
 
 pub fn enc(plaintext: &[u8], nonce: &[u8]) -> Result<(), ()> {
     Ok(())
