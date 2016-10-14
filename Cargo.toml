@@ -9,7 +9,7 @@ test = false
 doc  = false
 
 [dependencies]
-ring = "0.2"
+ring = "0.4"
 byteorder = "0.5"
 
 [dev-dependencies]
